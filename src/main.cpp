@@ -1,56 +1,40 @@
+// SLAVE
 #include <Arduino.h>
-#include <LiquidCrystal.h>
-#include <Servo.h>
 
-const int rs = 4, en = 5, d4 = 6, d5 = 7, d6 = 8, d7 = 9;
-const int motorPin = 3;
-String player1="", player2="";
+#define BTN_PL1 2
+#define BTN_PL2 3
+#define R1 4
+#define G1 5
+#define B1 6
+#define R2 7
+#define G2 8
+#define B2 9
 
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-Servo motor;
-
-void getNames() {
-  lcd.clear();
-  
-  lcd.print("Player 1 Name:");
-  Serial.println("Enter Player 1 Name:");
-  while (Serial.available() == 0);  
-  player1 = Serial.readStringUntil('\n');  
-  lcd.setCursor(0, 1);
-  lcd.print(player1);  
-  delay(2000);         
-  
-  lcd.clear();
-  
-  lcd.print("Player 2 Name:");
-  Serial.println("Enter Player 2 Name:");
-  while (Serial.available() == 0);  
-  player2 = Serial.readStringUntil('\n');  
-  lcd.setCursor(0, 1);
-  lcd.print(player2);  
-  delay(2000);         
-  
-  lcd.clear();
-  
-  // Final display
-  lcd.setCursor(0, 0);
-  lcd.print(player1 + ":");
-  lcd.setCursor(0, 1);
-  lcd.print(player2 + ":");
+void player1_ISR() {
+    int readVal = analogRead(A0);
+    Serial.print("Player 1: ");
+    Serial.print(readVal);
+    Serial.println("");
 }
+
+void player2_ISR() {
+    int readVal = analogRead(A1);
+    Serial.print("Player 2: ");
+    Serial.print(readVal);
+    Serial.println("");
+}
+
+
 
 void setup() {
-  lcd.begin(16, 2);
-  motor.attach(motorPin);
-  Serial.begin(9600);
-  
+    Serial.begin(9600);
+    attachInterrupt(digitalPinToInterrupt(BTN_PL1), player1_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(BTN_PL2), player2_ISR, RISING);
+    for(int i=R1; i<=B2; i++) {
+        pinMode(i, OUTPUT);
+    }
 }
 
-int i = 0;
-
 void loop() {
-  while(i == 0) {
-    getNames();
-    i++;
-  }
+    
 }
