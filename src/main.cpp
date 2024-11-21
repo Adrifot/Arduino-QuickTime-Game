@@ -1,40 +1,52 @@
-// SLAVE
+// MASTER
 #include <Arduino.h>
+#include <LiquidCrystal.h>
+#include <Servo.h>
+#include <SPI.h>
 
-#define BTN_PL1 2
-#define BTN_PL2 3
-#define R1 4
-#define G1 5
-#define B1 6
-#define R2 7
-#define G2 8
-#define B2 9
+#define RS 4
+#define EN 5
+#define D4 6
+#define D5 7
+#define D6 8
+#define D7 9
 
-void player1_ISR() {
-    int readVal = analogRead(A0);
-    Serial.print("Player 1: ");
-    Serial.print(readVal);
-    Serial.println("");
-}
+#define SERVO_PIN 3
 
-void player2_ISR() {
-    int readVal = analogRead(A1);
-    Serial.print("Player 2: ");
-    Serial.print(readVal);
-    Serial.println("");
-}
+String player1="", player2="";
 
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+Servo motor;
 
+byte color1 = 1;
+byte color2 = 2;
+
+byte sendByte(byte data);
 
 void setup() {
-    Serial.begin(9600);
-    attachInterrupt(digitalPinToInterrupt(BTN_PL1), player1_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(BTN_PL2), player2_ISR, RISING);
-    for(int i=R1; i<=B2; i++) {
-        pinMode(i, OUTPUT);
-    }
+  Serial.begin(9600);
+
+  SPI.begin();
+  pinMode(SS, OUTPUT);
+  digitalWrite(SS, HIGH);
+  // lcd.begin(16, 2);
+  // motor.attach(SERVO_PIN);
+  
 }
 
+byte l = 0;
+
 void loop() {
-    
+  // every second, send the value of 0, 1, 2, 3 and then 4to the slave
+  sendByte(l);
+  l = (l+1)%5;
+  delay(1000);
+}
+
+byte sendByte(byte data) {
+  digitalWrite(SS, LOW);
+  byte slaveResponse = SPI.transfer(data);
+  digitalWrite(SS, HIGH);
+  Serial.println("Sent byte to slave!");
+  // return slaveResponse;
 }

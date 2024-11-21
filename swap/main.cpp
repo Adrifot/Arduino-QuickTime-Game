@@ -1,57 +1,108 @@
-// MASTER
+// SLAVE
 #include <Arduino.h>
-#include <LiquidCrystal.h>
-#include <Servo.h>
+#include <SPI.h>
 
-const int rs = 4, en = 5, d4 = 6, d5 = 7, d6 = 8, d7 = 9;
-const int motorPin = 3;
-String player1="", player2="";
+#define BTN_PL1 2
+#define BTN_PL2 3
+#define R1 4
+#define G1 5
+#define B1 6
+#define R2 7
+#define G2 8
+#define B2 9
 
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-Servo motor;
+volatile byte receivedByte;
 
-void getNames() {
-  lcd.clear();
-  
-  lcd.print("Player 1 Name:");
-  Serial.println("Enter Player 1 Name:");
-  while (Serial.available() == 0);  
-  player1 = Serial.readStringUntil('\n');  
-  lcd.setCursor(0, 1);
-  lcd.print(player1);  
-  delay(2000);         
-  
-  lcd.clear();
-  
-  lcd.print("Player 2 Name:");
-  Serial.println("Enter Player 2 Name:");
-  while (Serial.available() == 0);  
-  player2 = Serial.readStringUntil('\n');  
-  lcd.setCursor(0, 1);
-  lcd.print(player2);  
-  delay(2000);         
-  
-  lcd.clear();
-  
-  // Final display
-  lcd.setCursor(0, 0);
-  lcd.print(player1 + ":");
-  lcd.setCursor(0, 1);
-  lcd.print(player2 + ":");
+void player1_ISR();
+void player2_ISR();
+void setRGB(int player, int color);
+
+ISR(SPI_STC_vect) {
+    Serial.println("SLAVE RECEIVING STUFF!");
+    receivedByte = SPDR;
+    setRGB(1, receivedByte);
 }
 
 void setup() {
-  lcd.begin(16, 2);
-  motor.attach(motorPin);
-  Serial.begin(9600);
-  
+    Serial.begin(9600);
+    SPI.begin();
+    pinMode(MISO, OUTPUT);
+    SPI.attachInterrupt();
+    SPCR |= _BV(SPE);
+    // attachInterrupt(digitalPinToInterrupt(BTN_PL1), player1_ISR, RISING);
+    // attachInterrupt(digitalPinToInterrupt(BTN_PL2), player2_ISR, RISING);
+    for(int i=R1; i<=B2; i++) {
+        pinMode(i, OUTPUT);
+    }
 }
 
-int i = 0;
-
 void loop() {
-  while(i == 0) {
-    getNames();
-    i++;
-  }
+    Serial.println("SLAVE ALIVE");
+    // setRGB(1, value) where value was sent by the master
+}
+
+void player1_ISR() {
+    int readVal = analogRead(A0);
+    Serial.print("Player 1: ");
+    Serial.print(readVal);
+    Serial.println("");
+}
+
+void player2_ISR() {
+    int readVal = analogRead(A1);
+    Serial.print("Player 2: ");
+    Serial.print(readVal);
+    Serial.println("");
+}
+
+void setRGB(int player, int color) {
+    int r, g, b;
+    if(player == 1) {
+        r = 4; g = 5; b = 6;
+    } else if(player == 2) {
+        r = 7; g = 8; b = 9;
+    } else {
+        Serial.println("Player select error");
+        return;
+    }
+    Serial.print("Player ");
+    Serial.print(player);
+    Serial.println("");
+    Serial.print("Color ");
+    Serial.print(color);
+    Serial.println("");
+    Serial.println("");
+    switch(color) {
+        case 0:
+            digitalWrite(r, LOW);
+            digitalWrite(g, LOW);
+            digitalWrite(b, LOW);
+            break;
+        case 1:
+            digitalWrite(r, HIGH);
+            digitalWrite(g, LOW);
+            digitalWrite(b, LOW);
+            break;
+        case 2:
+            digitalWrite(r, LOW);
+            digitalWrite(g, HIGH);
+            digitalWrite(b, LOW);
+            break;
+        case 3:
+            digitalWrite(r, LOW);
+            digitalWrite(g, LOW);
+            digitalWrite(b, HIGH);
+            break;
+        case 4:
+            digitalWrite(r, HIGH);
+            digitalWrite(g, HIGH);
+            digitalWrite(b, HIGH);
+            break;
+        default:
+            Serial.println("Color select error.");
+            // digitalWrite(r, HIGH);
+            // digitalWrite(g, LOW);
+            // digitalWrite(b, HIGH);
+            return;
+    }
 }
