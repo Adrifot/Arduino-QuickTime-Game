@@ -13,15 +13,20 @@
 
 #define SERVO_PIN 3
 
+#define DUMMY 255
+#define PL1_BTN_SIG 10
+#define PL2_BTN_SIG 20
+
 String player1="", player2="";
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 Servo motor;
 
-byte color1 = 1;
-byte color2 = 2;
+int pl1_pts = 0, pl2_pts = 0;
 
+bool gameStarted = false;
 byte sendByte(byte data);
+void initialState();
 
 void setup() {
   Serial.begin(9600);
@@ -29,18 +34,26 @@ void setup() {
   SPI.begin();
   pinMode(SS, OUTPUT);
   digitalWrite(SS, HIGH);
-  // lcd.begin(16, 2);
-  // motor.attach(SERVO_PIN);
-  
+
+  lcd.begin(16, 2);
+
+  motor.attach(SERVO_PIN);
+  motor.write(0);
+
+  initialState();
 }
 
 byte l = 0;
 
 void loop() {
-  // every second, send the value of 0, 1, 2, 3 and then 4to the slave
-  sendByte(l);
-  l = (l+1)%5;
-  delay(1000);
+    initialState();
+    while(gameStarted) {
+        lcd.clear();
+        lcd.home();
+        lcd.print("Player 1: "); lcd.print(pl1_pts); lcd.print(" pts");
+        lcd.setCursor(0, 1);
+        lcd.print("Player 2: "); lcd.print(pl2_pts); lcd.print(" pts");
+    }
 }
 
 byte sendByte(byte data) {
@@ -48,5 +61,17 @@ byte sendByte(byte data) {
   byte slaveResponse = SPI.transfer(data);
   digitalWrite(SS, HIGH);
   Serial.println("Sent byte to slave!");
-  // return slaveResponse;
+  return slaveResponse;
+}
+
+void initialState() {
+  lcd.home();
+  lcd.print("Press any button");
+  lcd.setCursor(0, 1);
+  lcd.print("to begin.");
+  byte receivedFromSlave = sendByte(DUMMY);
+  if(receivedFromSlave == PL1_BTN_SIG || receivedFromSlave == PL2_BTN_SIG) {
+    gameStarted = true;
+    sendByte(DUMMY);
+  }
 }
