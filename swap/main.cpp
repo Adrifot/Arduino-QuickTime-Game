@@ -98,14 +98,14 @@ void playRound() {
   }
   if(millis() - startTime > timeout) {
     sendByte(TIMEOUT_SIG);
-    // update points
+
   } else {
     byte color = slaveResponse & 0b01100000;
     slaveResponse = slaveResponse & 0b10011111;
     if(slaveResponse == PL1_BTN_SIG) {
-      // add points to player 1
+      pl1_pts += millis() - startTime;
     } else if(slaveResponse == PL2_BTN_SIG) {
-      // add points to player 2
+      pl2_pts += millis() - startTime;
     } else Serial.println("An error occured! The player bitmask is incorrect.");
   }
 }
