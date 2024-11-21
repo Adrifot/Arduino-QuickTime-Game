@@ -1,108 +1,111 @@
-// SLAVE
+// MASTER
 #include <Arduino.h>
+#include <LiquidCrystal.h>
+#include <Servo.h>
 #include <SPI.h>
 
-#define BTN_PL1 2
-#define BTN_PL2 3
-#define R1 4
-#define G1 5
-#define B1 6
-#define R2 7
-#define G2 8
-#define B2 9
+#define RS 4
+#define EN 5
+#define D4 6
+#define D5 7
+#define D6 8
+#define D7 9
 
-volatile byte receivedByte;
+#define SERVO_PIN 3
 
-void player1_ISR();
-void player2_ISR();
-void setRGB(int player, int color);
+#define DUMMY 255
+#define PL1_BTN_SIG 10
+#define PL2_BTN_SIG 20
+#define TIMEOUT_SIG 128
 
-ISR(SPI_STC_vect) {
-    Serial.println("SLAVE RECEIVING STUFF!");
-    receivedByte = SPDR;
-    setRGB(1, receivedByte);
-}
+String player1="", player2="";
+
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+Servo motor;
+
+int pl1_pts = 0, pl2_pts = 0;
+
+bool gameStarted = false;
+
+unsigned long timeout = 3000;
+
+byte sendByte(byte data);
+void initialState();
+void printPts();
+void playRound();
 
 void setup() {
-    Serial.begin(9600);
-    SPI.begin();
-    pinMode(MISO, OUTPUT);
-    SPI.attachInterrupt();
-    SPCR |= _BV(SPE);
-    // attachInterrupt(digitalPinToInterrupt(BTN_PL1), player1_ISR, RISING);
-    // attachInterrupt(digitalPinToInterrupt(BTN_PL2), player2_ISR, RISING);
-    for(int i=R1; i<=B2; i++) {
-        pinMode(i, OUTPUT);
-    }
+  Serial.begin(9600);
+
+  SPI.begin();
+  pinMode(SS, OUTPUT);
+  digitalWrite(SS, HIGH);
+
+  lcd.begin(16, 2);
+
+  motor.attach(SERVO_PIN);
+  motor.write(0);
+
+  randomSeed(analogRead(0));
 }
+
+byte l = 0;
 
 void loop() {
-    Serial.println("SLAVE ALIVE");
-    // setRGB(1, value) where value was sent by the master
-}
-
-void player1_ISR() {
-    int readVal = analogRead(A0);
-    Serial.print("Player 1: ");
-    Serial.print(readVal);
-    Serial.println("");
-}
-
-void player2_ISR() {
-    int readVal = analogRead(A1);
-    Serial.print("Player 2: ");
-    Serial.print(readVal);
-    Serial.println("");
-}
-
-void setRGB(int player, int color) {
-    int r, g, b;
-    if(player == 1) {
-        r = 4; g = 5; b = 6;
-    } else if(player == 2) {
-        r = 7; g = 8; b = 9;
-    } else {
-        Serial.println("Player select error");
-        return;
+    initialState();
+    while(gameStarted) {
+        printPts();
+        playRound();
     }
-    Serial.print("Player ");
-    Serial.print(player);
-    Serial.println("");
-    Serial.print("Color ");
-    Serial.print(color);
-    Serial.println("");
-    Serial.println("");
-    switch(color) {
-        case 0:
-            digitalWrite(r, LOW);
-            digitalWrite(g, LOW);
-            digitalWrite(b, LOW);
-            break;
-        case 1:
-            digitalWrite(r, HIGH);
-            digitalWrite(g, LOW);
-            digitalWrite(b, LOW);
-            break;
-        case 2:
-            digitalWrite(r, LOW);
-            digitalWrite(g, HIGH);
-            digitalWrite(b, LOW);
-            break;
-        case 3:
-            digitalWrite(r, LOW);
-            digitalWrite(g, LOW);
-            digitalWrite(b, HIGH);
-            break;
-        case 4:
-            digitalWrite(r, HIGH);
-            digitalWrite(g, HIGH);
-            digitalWrite(b, HIGH);
-            break;
-        default:
-            Serial.println("Color select error.");
-            // digitalWrite(r, HIGH);
-            // digitalWrite(g, LOW);
-            // digitalWrite(b, HIGH);
-            return;
-    }
+}
+
+byte sendByte(byte data) {
+  digitalWrite(SS, LOW);
+  byte slaveResponse = SPI.transfer(data);
+  digitalWrite(SS, HIGH);
+  Serial.println("Sent byte to slave!");
+  return slaveResponse;
+}
+
+void initialState() {
+  lcd.home();
+  lcd.print("Press any button");
+  lcd.setCursor(0, 1);
+  lcd.print("to begin.");
+  byte receivedFromSlave = sendByte(DUMMY);
+  if(receivedFromSlave == PL1_BTN_SIG || receivedFromSlave == PL2_BTN_SIG) {
+    gameStarted = true;
+    sendByte(DUMMY);
+  }
+}
+
+void printPts() {
+  lcd.clear();
+  lcd.home();
+  lcd.print("Player 1: "); lcd.print(pl1_pts); lcd.print(" pts");
+  lcd.setCursor(0, 1);
+  lcd.print("Player 2: "); lcd.print(pl2_pts); lcd.print(" pts");
+}
+
+void playRound() {
+  byte col1 = random(1, 4);
+  byte col2 = random(1, 4);
+  byte colsToSend = col1 | (col2 << 2);
+  byte slaveResponse = sendByte(colsToSend);
+  unsigned long startTime = millis();
+  while(((slaveResponse & 0b01100000) == 0) && (millis() - startTime < timeout)) {
+    slaveResponse = sendByte(DUMMY);
+  }
+  if(millis() - startTime > timeout) {
+    sendByte(TIMEOUT_SIG);
+    // update points
+  } else {
+    byte color = slaveResponse & 0b01100000;
+    slaveResponse = slaveResponse & 0b10011111;
+    if(slaveResponse == PL1_BTN_SIG) {
+      // add points to player 1
+    } else if(slaveResponse == PL2_BTN_SIG) {
+      // add points to player 2
+    } else Serial.println("An error occured! The player bitmask is incorrect.");
+  }
 }
