@@ -43,4 +43,4 @@ Indică progresul jocului, rotindu-se pe măsură ce timpul trece.
 
 
 ## Video YouTube 
-[![Video YouTube](https://img.youtube.com/vi/cw0PqDtJqaM/maxresdefault.jpg)](https://www.youtube.com/watch?v=cw0PqDtJqaM)
+[![Video YouTube](https://img.youtube.com/vi/cw0PqDtJqaM/hqdefault.jpg)](https://www.youtube.com/watch?v=cw0PqDtJqaM)
