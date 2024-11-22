@@ -13,10 +13,10 @@
 Acest proiect reprezintă un joc de rapiditate în apăsarea butoanelor folosind LED-uri RGB, butoane și alte componente. Proiectul este construit folosind un microcontroller **ATMega328P** și API-ul **Arduino**.
 
 ## Proiectul în funcțiune
-![Proiectul în funcțiune](media/working.png)
+![Proiectul în funcțiune](media/circuit_photo.jpg)
 
-## Componente utilizate
-![Componentele proiectului](media/components.png)
+## Schema electrică
+![Schematică TinkerCAD](media/circuit.png)
 
 - **2x LED RGB**: Afișează culoarea ce trebuie selectată cât mai rapid de jucători.
 - **6x LED simplu**: Indică LED-ul corespunzător fiecărui buton.
@@ -43,7 +43,4 @@ Indică progresul jocului, rotindu-se pe măsură ce timpul trece.
 
 
 ## Video YouTube 
-[![Video YouTube](LINK/maxresdefault.jpg)](LINK)
-
-## Schema electrică
-![Schematică TinkerCAD](media/schema_electrica.png)
+[![Video YouTube](https://img.youtube.com/vi/cw0PqDtJqaM/hqdefault.jpg)](https://www.youtube.com/watch?v=cw0PqDtJqaM)
