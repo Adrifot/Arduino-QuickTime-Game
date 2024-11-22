@@ -47,6 +47,11 @@ ISR(SPI_STC_vect) {
         setRGB(1, 0);
         setRGB(2, 0);
     }
+
+    if(receivedByte == 4 || (receivedByte >= 129 && receivedByte <= 131)) {
+        setRGB(1, receivedByte);
+        setRGB(2, receivedByte);
+    }
 }
 
 void setup() {
@@ -129,6 +134,21 @@ void setRGB(int player, int color) {
             break;
         case 4:
             digitalWrite(r, HIGH);
+            digitalWrite(g, HIGH);
+            digitalWrite(b, HIGH);
+            break;
+        case 129:
+            digitalWrite(r, HIGH);
+            digitalWrite(g, HIGH);
+            digitalWrite(b, LOW);
+            break;
+        case 130:
+            digitalWrite(r, HIGH);
+            digitalWrite(g, LOW);
+            digitalWrite(b, HIGH);
+            break;
+        case 131: 
+            digitalWrite(r, LOW);
             digitalWrite(g, HIGH);
             digitalWrite(b, HIGH);
             break;

@@ -20,12 +20,11 @@
 
 #define PLAYER_BITMASK 0b00011111 
 
-String player1="", player2="";
-
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 Servo motor;
 
 int pl1_pts = 0, pl2_pts = 0;
+int servoProgress = 0;
 
 bool gameStarted = false;
 
@@ -35,6 +34,7 @@ byte sendByte(byte data);
 void initialState();
 void printPts();
 void playRound();
+void endGame();
 
 void setup() {
   Serial.begin(9600);
@@ -54,12 +54,15 @@ void setup() {
 byte l = 0;
 
 void loop() {
+  motor.write(0);
     initialState();
     while(gameStarted) {
         printPts();
         playRound();
+        if(servoProgress >= 180) {gameStarted = false; return;}
         delay(500);
     }
+    if(servoProgress >= 180) endGame();
 }
 
 byte sendByte(byte data) {
@@ -76,6 +79,7 @@ byte sendByte(byte data) {
 }
 
 void initialState() {
+  sendByte(TIMEOUT_SIG);
   lcd.home();
   lcd.print("Press any button");
   lcd.setCursor(0, 1);
@@ -109,7 +113,7 @@ void playRound() {
     Serial.print(slaveResponse);
     Serial.println("");
   }
- while ((slaveResponse == DUMMY || !(slaveResponse & 0b01100000)) && millis() - startTime < timeout);
+  while ((slaveResponse == DUMMY || !(slaveResponse & 0b01100000)) && millis() - startTime < timeout);
 
   if (millis() - startTime >= timeout) {
     sendByte(TIMEOUT_SIG);
@@ -144,4 +148,73 @@ void playRound() {
       // Serial.println("");
     }
   }
+  servoProgress += 18;
+  motor.write(servoProgress);
+}
+
+void endGame() {
+  lcd.clear();
+  lcd.home();
+  lcd.print("Calculating");
+  lcd.setCursor(0, 1);
+  lcd.print("score");
+  delay(600);
+  for(int i=0; i<3; i++) {
+    sendByte(129+i);
+    lcd.print(".");
+    delay(600);
+  }
+  lcd.clear();
+  lcd.home();
+  lcd.print("Player 1: ");
+  for(int i=0; i<= pl1_pts; i++) {
+    lcd.setCursor(10, 0);
+    lcd.print(i);
+    lcd.print(" pts");
+    delay(50);
+  }
+  lcd.setCursor(0, 1);
+  lcd.print("Player 2: ");
+  for(int i=0; i<= pl2_pts; i++) {
+    lcd.setCursor(10, 1);
+    lcd.print(i);
+    lcd.print(" pts");
+    delay(50);
+  }
+  for(int i=0; i<3; i++) {
+    lcd.noDisplay();
+    delay(300);
+    lcd.display();
+    delay(300);
+  }
+  delay(1000);
+  lcd.home();
+  if(pl1_pts > pl2_pts) {
+    for(int i=0; i<16; i++) {
+      lcd.clear();
+      lcd.setCursor(15-i, 0);
+      lcd.print("Player 1 wins!!!");
+      sendByte(4);
+      delay(200);
+    }
+    delay(1000);
+  } else if(pl1_pts < pl2_pts) {
+    for(int i=0; i<16; i++) {
+      lcd.clear();
+      lcd.setCursor(15-i, 0);
+      lcd.print("Player 2 wins!!!");
+      sendByte(4);
+      delay(200);
+    }
+    delay(1000);
+  } else {
+    lcd.clear();
+    lcd.home();
+    lcd.print("Wow! It's a tie!");
+    sendByte(4);
+  }
+  servoProgress = 0;
+  motor.write(servoProgress);
+  pl1_pts = 0;
+  pl2_pts = 0;
 }
