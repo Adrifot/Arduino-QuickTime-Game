@@ -23,6 +23,7 @@
 #define B_MIN 680
 #define B_MAX 740
 
+// SPI variables
 volatile byte receivedByte, responseByte;
 
 void player1_ISR();
@@ -33,15 +34,18 @@ byte mapColor(int analogData);
 
 ISR(SPI_STC_vect) {
     receivedByte = SPDR;
+
+    // checking if the received byte is not a dummy byte
     if(SPDR != DUMMY) {
         Serial.print("Slave received value: ");
         Serial.print(receivedByte);
         Serial.println("");
     }
     
+    // checking if the received byte is a color code
     if(receivedByte >= 5 && receivedByte <= 15) {
-        byte col1 = receivedByte & 3;
-        byte col2 = (receivedByte >> 2) & 3;
+        byte col1 = receivedByte & 3; // the last 2 bits
+        byte col2 = (receivedByte >> 2) & 3; // the previous 2 bits
         ledCycle(col1, col2);
     } else if(receivedByte == TIMEOUT_SIG) {
         setRGB(1, 0);
@@ -61,7 +65,7 @@ void setup() {
     pinMode(MISO, OUTPUT);
     pinMode(SS, INPUT);
     SPI.attachInterrupt();
-    SPCR |= _BV(SPE);
+    SPCR |= _BV(SPE); // enable SPI in slave mode
     attachInterrupt(digitalPinToInterrupt(BTN_PL1), player1_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(BTN_PL2), player2_ISR, RISING);
     for(int i=R1; i<=B2; i++) {
@@ -80,7 +84,7 @@ void player1_ISR() {
     Serial.print(readVal);
     Serial.println("");
     byte colorCode = mapColor(readVal);
-    responseByte = PL1_BTN_SIG | (colorCode << 5);
+    responseByte = PL1_BTN_SIG | (colorCode << 5); // setting the player 1 bit and the color code
     SPDR = responseByte;
 }
 
@@ -90,7 +94,7 @@ void player2_ISR() {
     Serial.print(readVal);
     Serial.println("");
     byte colorCode = mapColor(readVal);
-    responseByte = PL2_BTN_SIG |(colorCode << 5);
+    responseByte = PL2_BTN_SIG |(colorCode << 5); // setting the player 2 bit and the color code
     SPDR = responseByte;
 }
 
@@ -168,6 +172,7 @@ void ledCycle(byte c1, byte c2) {
 }
 
 byte mapColor(int analogData) {
+    // mapping the analog data to the color codes
     if(analogData >= R_MIN && analogData <= R_MAX) return 1;
     else if(analogData >= G_MIN && analogData <= G_MAX) return 2;
     else if(analogData >= B_MIN && analogData <= B_MAX) return 3;
